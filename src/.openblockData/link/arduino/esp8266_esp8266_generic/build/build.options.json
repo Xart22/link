@@ -1,0 +1,11 @@
+{
+  "additionalFiles": "",
+  "builtInToolsFolders": "",
+  "compiler.optimization_flags": "",
+  "customBuildProperties": "",
+  "fqbn": "esp8266:esp8266:generic:baud=921600",
+  "hardwareFolders": "D:\\project\\node\\front-end\\openblock\\nomo-link\\tools\\Arduino\\packages",
+  "otherLibrariesFolders": "D:\\project\\node\\front-end\\openblock\\nomo-link\\tools\\Arduino\\libraries,D:\\project\\node\\front-end\\openblock\\nomo-link\\tools\\Arduino\\libraries",
+  "runtime.ide.version": "10607",
+  "sketchLocation": "D:\\project\\node\\front-end\\openblock\\nomo-link\\src\\.openblockData\\link\\arduino\\esp8266_esp8266_generic\\code\\code.ino"
+}
