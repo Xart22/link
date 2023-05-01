@@ -25,7 +25,7 @@ const syncLibary = async () => {
             fs.readFileSync(path.join(__dirname, "tools/version.json"), "utf8")
         );
         const response = await axios.get(
-            "https://nomokit-libary.robo-club.com/api/check-update"
+            "https://nomo-kit.com/api/check-update"
         );
         const data = response.data;
         if (data.version !== versionFile.version) {
@@ -121,7 +121,7 @@ async function createWindow() {
         fullscreen: false,
     });
     win.removeMenu();
-    //win.webContents.openDevTools();
+    // win.webContents.openDevTools();
     var contextMenu = Menu.buildFromTemplate([
         {
             label: "Show App",

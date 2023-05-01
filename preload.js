@@ -64,7 +64,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     });
 
     async function openNomokit() {
-        await shell.openExternal("https://nomobase-app.robo-club.com/");
+        await shell.openExternal("https://nomokit.robo-club.com/");
     }
     async function allowSsl() {
         await shell.openExternal("https:127.0.0.1:20111/");

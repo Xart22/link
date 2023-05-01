@@ -10,3 +10,5 @@ firmwares/
 dist/
 
 out/
+
+src/.openblockData
