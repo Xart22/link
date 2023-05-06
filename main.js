@@ -166,9 +166,9 @@ const template = [
 
 const menu = Menu.buildFromTemplate(template);
 Menu.setApplicationMenu(menu);
-
+let win;
 async function createWindow() {
-    const win = new BrowserWindow({
+    win = new BrowserWindow({
         width: 400,
         height: 430,
         webPreferences: {
@@ -267,6 +267,40 @@ async function createWindow() {
                 message: "Add libary success",
             });
             event.reply("addZip-reply", "success");
+            const template = [
+                {
+                    label: "Local Library",
+                    submenu: localLib.map((item, index) => {
+                        return {
+                            label: `${index + 1}. ${item}`,
+                        };
+                    }),
+                },
+
+                {
+                    role: "help",
+                    submenu: [
+                        {
+                            label: "Learn More",
+                            click: async () => {
+                                const { shell } = require("electron");
+                                await shell.openExternal(
+                                    "https://nomo-kit.com/"
+                                );
+                            },
+                        },
+                        {
+                            label: "Exit",
+                            click: async () => {
+                                app.quit();
+                            },
+                        },
+                    ],
+                },
+            ];
+
+            const menu = Menu.buildFromTemplate(template);
+            Menu.setApplicationMenu(menu);
         } catch (error) {
             dialog.showMessageBox({
                 type: "error",
