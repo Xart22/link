@@ -1,10 +1,16 @@
-const { app, BrowserWindow, Tray, Menu } = require("electron");
+const { app, BrowserWindow, Tray, Menu, ipcMain, dialog } = require("electron");
 const path = require("path");
 const OpenBlockLink = require("./src/index");
 const axios = require("axios");
 const fs = require("fs");
 const extract = require("extract-zip");
 const Downloader = require("nodejs-file-downloader");
+const logger = require("electron-log");
+const { autoUpdater, AppUpdater } = require("electron-updater");
+logger.transports.file.level = "info";
+autoUpdater.logger = logger;
+autoUpdater.autoDownload = false;
+autoUpdater.autoInstallOnAppQuit = false;
 
 const link = new OpenBlockLink();
 const startService = async () => {
@@ -33,6 +39,7 @@ const syncLibary = async () => {
                 recursive: true,
                 force: true,
             });
+
             const downloader = new Downloader({
                 url: data.url,
                 directory: path.join(__dirname, "tools/Arduino/libraries"),
@@ -40,7 +47,6 @@ const syncLibary = async () => {
 
             const { filePath, downloadStatus } = await downloader.download();
             if (downloadStatus === "COMPLETE") {
-                console.log("Download completed");
                 await extract(
                     filePath,
                     { dir: path.join(__dirname, "tools/Arduino/libraries") },
@@ -91,6 +97,27 @@ const syncLibary = async () => {
                         });
                     }
                 );
+                fs.readdir(
+                    path.join(__dirname, "tools/Arduino/local"),
+                    (err, files) => {
+                        files.forEach(async (file) => {
+                            if (file.includes(".zip")) {
+                                await extract(
+                                    path.join(
+                                        __dirname,
+                                        "tools/Arduino/local/" + file
+                                    ),
+                                    {
+                                        dir: path.join(
+                                            __dirname,
+                                            "tools/Arduino/libraries"
+                                        ),
+                                    }
+                                );
+                            }
+                        });
+                    }
+                );
 
                 fs.writeFileSync(
                     path.join(__dirname, "tools/version.json"),
@@ -102,15 +129,48 @@ const syncLibary = async () => {
         console.log(error);
     }
 };
+const localLib = JSON.parse(
+    fs.readFileSync(path.join(__dirname, "tools/localLib.json"), "utf8")
+);
 
 const kill = require("kill-port");
+const template = [
+    {
+        label: "Local Library",
+        submenu: localLib.map((item, index) => {
+            return {
+                label: `${index + 1}. ${item}`,
+            };
+        }),
+    },
+
+    {
+        role: "help",
+        submenu: [
+            {
+                label: "Learn More",
+                click: async () => {
+                    const { shell } = require("electron");
+                    await shell.openExternal("https://nomo-kit.com/");
+                },
+            },
+            {
+                label: "Exit",
+                click: async () => {
+                    app.quit();
+                },
+            },
+        ],
+    },
+];
+
+const menu = Menu.buildFromTemplate(template);
+Menu.setApplicationMenu(menu);
 
 async function createWindow() {
     const win = new BrowserWindow({
         width: 400,
-        height: 330,
-        maxHeight: 330,
-        maxWidth: 400,
+        height: 430,
         webPreferences: {
             nodeIntegration: true,
             preload: path.join(__dirname, "preload.js"),
@@ -119,8 +179,9 @@ async function createWindow() {
         title: "Nomokit-link",
         fullscreenable: false,
         fullscreen: false,
+        resizable: false,
     });
-    win.removeMenu();
+
     // win.webContents.openDevTools();
     var contextMenu = Menu.buildFromTemplate([
         {
@@ -151,6 +212,81 @@ async function createWindow() {
         event.preventDefault();
         win.hide();
     });
+    ipcMain.on("get-libary-path", (event, arg) => {
+        console.log("get-libary-path");
+        event.reply(
+            "get-libary-path-reply",
+            path.join(__dirname, "tools/Arduino/libraries")
+        );
+    });
+
+    ipcMain.on("addZip", async (event, arg) => {
+        const fileName = arg.name;
+        const file = arg.data;
+
+        try {
+            fs.writeFileSync(
+                path.join(__dirname, "tools/Arduino/local/" + fileName),
+                Buffer.from(file),
+                (err) => {
+                    console.log(err);
+                }
+            );
+            await extract(
+                path.join(__dirname, "tools/Arduino/local/" + fileName),
+                {
+                    dir: path.join(__dirname, "tools/Arduino/local"),
+                },
+                function (err) {
+                    if (err) {
+                        console.log(err);
+                    }
+                }
+            );
+
+            const localLib = await readFileLocal();
+
+            await extract(
+                path.join(__dirname, "tools/Arduino/local/" + fileName),
+                {
+                    dir: path.join(__dirname, "tools/Arduino/libraries"),
+                },
+                function (err) {
+                    if (err) {
+                        console.log(err);
+                    }
+                }
+            );
+            fs.writeFileSync(
+                path.join(__dirname, "tools/localLib.json"),
+                JSON.stringify(localLib)
+            );
+            dialog.showMessageBox({
+                type: "info",
+                title: "Success",
+                message: "Add libary success",
+            });
+            event.reply("addZip-reply", "success");
+        } catch (error) {
+            dialog.showMessageBox({
+                type: "error",
+                title: "Error",
+                message: "Add libary error",
+            });
+        }
+    });
+}
+
+async function readFileLocal() {
+    const filesName = [];
+    fs.readdir(path.join(__dirname, "tools/Arduino/local"), (err, files) => {
+        files.forEach(async (file) => {
+            if (!file.includes(".zip")) {
+                filesName.push(file + ".h");
+            }
+        });
+    });
+    return filesName;
 }
 
 app.whenReady().then(async () => {
@@ -182,3 +318,47 @@ const stopService = async () => {
         console.log("Port 20111 is now free");
     });
 };
+
+app.on("ready", async () => {
+    autoUpdater.checkForUpdatesAndNotify();
+    autoUpdater.on("update-available", () => {
+        dialog
+            .showMessageBox({
+                type: "question",
+                title: "Update available",
+                message: "Update Version is available",
+                buttons: ["Yes", "No"],
+                yes: 0,
+                no: 1,
+            })
+            .then((result) => {
+                if (result.response === 0) {
+                    win.loadFile(path.join(__dirname, "update.html"));
+                    autoUpdater.downloadUpdate();
+                }
+            });
+    });
+    autoUpdater.on("update-downloaded", () => {
+        dialog
+            .showMessageBox({
+                type: "question",
+                title: "Update available",
+                message: "Update is downloaded, will be installed on restart",
+                buttons: ["Yes", "No"],
+                yes: 0,
+                no: 1,
+            })
+            .then((result) => {
+                if (result.response === 0) {
+                    app.exit();
+                    autoUpdater.quitAndInstall(false, false);
+                }
+            });
+    });
+    autoUpdater.on("error", (err) => {
+        dialog.showErrorBox("Error: ", err == null ? "unknown" : err);
+    });
+    autoUpdater.on("download-progress", (progressObj) => {
+        win.webContents.send("download-progress", progressObj.percent);
+    });
+});

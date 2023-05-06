@@ -139,17 +139,24 @@ class Arduino {
                     this._sendstd(ansi.red + data);
                 }
             });
-
+            let counter = 1;
             arduinoBuilder.stdout.on("data", (buf) => {
                 const data = buf.toString();
                 let ansiColor = null;
 
                 if (data.search(/Sketch uses|Global variables/g) === -1) {
                     ansiColor = ansi.clear;
+                    if (counter == 1) {
+                        counter++;
+                        this._sendstd(
+                            ansiColor +
+                                "Compiling sketch...\nDont close this window.\nThis may take a few minutes.\n"
+                        );
+                    }
                 } else {
                     ansiColor = ansi.green_dark;
+                    this._sendstd(ansiColor + data);
                 }
-                this._sendstd(ansiColor + data);
             });
 
             const listenAbortSignal = setInterval(() => {
@@ -268,7 +275,7 @@ class Arduino {
                             this._config.fqbn === "arduino:avr:leonardo" ||
                             this._config.fqbn === "SparkFun:avr:makeymakey" ||
                             this._config.fqbn.indexOf("rp2040:rp2040") !== -1 ||
-                            this._config.fqbn === "arduino:mbed:nano33ble"
+                            this._config.fqbn === "arduino:mbed_nano:nano33ble"
                         ) {
                             // Waiting for usb rerecognize.
                             const wait = (ms) =>
