@@ -6,7 +6,7 @@ const fs = require("fs");
 const extract = require("extract-zip");
 const Downloader = require("nodejs-file-downloader");
 const logger = require("electron-log");
-const { autoUpdater, AppUpdater } = require("electron-updater");
+const { autoUpdater } = require("electron-updater");
 logger.transports.file.level = "info";
 autoUpdater.logger = logger;
 autoUpdater.autoDownload = false;
@@ -27,6 +27,11 @@ const startService = async () => {
 
 const syncLibary = async () => {
     try {
+        const localDir = path.join(__dirname, "tools/Arduino/local");
+        if (!fs.existsSync(localDir)) {
+            fs.mkdirSync(localDir);
+        }
+
         const versionFile = JSON.parse(
             fs.readFileSync(path.join(__dirname, "tools/version.json"), "utf8")
         );
@@ -301,7 +306,9 @@ async function createWindow() {
 
             const menu = Menu.buildFromTemplate(template);
             Menu.setApplicationMenu(menu);
+            logger.info("Add libary success");
         } catch (error) {
+            logger.error(error);
             dialog.showMessageBox({
                 type: "error",
                 title: "Error",
@@ -324,20 +331,17 @@ async function readFileLocal() {
 }
 
 app.whenReady().then(async () => {
-    createWindow();
     await syncLibary();
     startService();
-    app.on("activate", () => {
-        if (BrowserWindow.getAllWindows().length === 0) {
-            createWindow();
-        }
-    });
+    if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+    }
 });
 
-app.on("window-all-closed", async () => {
+app.on("window-all-closed", () => {
     if (process.platform !== "darwin") {
-        await stopService();
-        app.quit();
+        win.destroy();
+        app.exit();
     }
 });
 
@@ -385,6 +389,7 @@ app.on("ready", async () => {
             .then((result) => {
                 if (result.response === 0) {
                     app.exit();
+                    app.quit();
                     autoUpdater.quitAndInstall(false, false);
                 }
             });
