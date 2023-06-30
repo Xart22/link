@@ -1,6 +1,6 @@
 {
     "name": "nomolink",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "description": "Nomolink",
     "main": "main.js",
     "scripts": {
@@ -42,7 +42,7 @@
             "shortcutName": "Nomolink",
             "runAfterFinish": true,
             "include": "build/installer.nsh",
-            "perMachine": true
+            "perMachine": false
         }
     },
     "author": "Sonasoft",

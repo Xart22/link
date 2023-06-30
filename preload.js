@@ -86,4 +86,9 @@ window.addEventListener("DOMContentLoaded", async () => {
         allowSSL.disabled = false;
         addZip.disabled = false;
     });
+    ipcRenderer.on("download-progress", function (event, text) {
+        const progress = document.getElementById("progress-bar");
+        progress.style.width = text + "%";
+        progress.innerHTML = text.toFixed(0) + "%";
+    });
 });

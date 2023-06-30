@@ -211,6 +211,8 @@ async function createWindow() {
     win.on("closed", async () => {
         console.log("closed");
         await stopService();
+        win.destroy();
+        app.quit();
     });
 
     win.on("minimize", function (event) {
